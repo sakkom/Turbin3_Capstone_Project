@@ -6,4 +6,6 @@ pub enum UserError {
     NameTooLong,
     #[msg("Role numbers must be 0, 1 and 2")]
     InvalidRole,
+    #[msg("Unauthorized role")]
+    UnauthorizedRole,
 }

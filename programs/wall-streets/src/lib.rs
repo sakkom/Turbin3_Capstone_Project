@@ -23,6 +23,12 @@ pub mod wall_streets {
         Ok(())
     }
 
+    pub fn initialize_artist(ctx: Context<InitializeArtist>) -> Result<()> {
+        ctx.accounts.initialize_artist(&ctx.bumps)?;
+
+        Ok(())
+    }
+
     pub fn initialize_wall(ctx: Context<InitializeWall>) -> Result<()> {
         ctx.accounts.initialize_wall(&ctx.bumps)?;
 

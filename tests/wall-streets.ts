@@ -22,13 +22,24 @@ describe("wall-streets", () => {
   let PROJECT_ATA: anchor.web3.PublicKey;
   let WALLPDA: anchor.web3.PublicKey;
 
-  const ROLE_NUMBER = 2;
+  const FUN = new anchor.BN(0);
+  const ARTIST_NUMBER = new anchor.BN(1);
+  const WALL_OWNER_NUMBER = 2;
   const WALLSEEDS = new anchor.BN(0);
 
   const userAccountPda = anchor.web3.PublicKey.findProgramAddressSync(
     [Buffer.from("user"), provider.publicKey.toBuffer()],
     program.programId
   )[0];
+
+  const [artistFeature] = anchor.web3.PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("feature"),
+      userAccountPda.toBuffer(),
+      ARTIST_NUMBER.toBuffer("le", 1),
+    ],
+    program.programId
+  );
 
   before(async () => {
     LOCALNET_USDC_MINT = await createMint(
@@ -46,7 +57,7 @@ describe("wall-streets", () => {
   it("Is initialized user!", async () => {
     const name = "wall-funer";
     await program.methods
-      .initializeUser(name, ROLE_NUMBER)
+      .initializeUser(name, ARTIST_NUMBER.toNumber())
       .accountsPartial({
         signer: provider.wallet.publicKey,
         userAccount: userAccountPda,
@@ -55,50 +66,71 @@ describe("wall-streets", () => {
       .rpc();
 
     const userAccount = await program.account.user.fetch(userAccountPda);
-    console.log("user account initial data", userAccount);
+    // console.log("user account initial data", userAccount);
 
     expect(userAccount.wallMints).to.have.lengthOf(30);
   });
 
-  it("Is initialized wall!", async () => {
-    const userAccount = await program.account.user.fetch(userAccountPda);
-    // console.log("user account initial data", userAccount);
+  // it("Is initialized wall!", async () => {
+  //   const userAccount = await program.account.user.fetch(userAccountPda);
+  //   // console.log("user account initial data", userAccount);
 
-    const seed = new anchor.BN(userAccount.wallSeeds);
-    console.log("beforeseed", seed);
+  //   const seed = new anchor.BN(userAccount.wallSeeds);
+  //   console.log("beforeseed", seed);
 
-    WALLPDA = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("wall"), userAccountPda.toBuffer(), seed.toBuffer("le", 2)],
-      program.programId
-    )[0];
+  //   WALLPDA = anchor.web3.PublicKey.findProgramAddressSync(
+  //     [Buffer.from("wall"), userAccountPda.toBuffer(), seed.toBuffer("le", 2)],
+  //     program.programId
+  //   )[0];
 
-    PROJECT_ATA = anchor.web3.PublicKey.findProgramAddressSync(
-      [
-        WALLPDA.toBuffer(),
-        TOKEN_PROGRAM_ID.toBuffer(),
-        LOCALNET_USDC_MINT.toBuffer(),
-      ],
-      ASSOCIATED_TOKEN_PROGRAM_ID
-    )[0];
+  //   PROJECT_ATA = anchor.web3.PublicKey.findProgramAddressSync(
+  //     [
+  //       WALLPDA.toBuffer(),
+  //       TOKEN_PROGRAM_ID.toBuffer(),
+  //       LOCALNET_USDC_MINT.toBuffer(),
+  //     ],
+  //     ASSOCIATED_TOKEN_PROGRAM_ID
+  //   )[0];
 
+  //   await program.methods
+  //     .initializeWall()
+  //     .accountsPartial({
+  //       wallOwner: provider.wallet.publicKey,
+  //       userAccount: userAccountPda,
+  //       wall: WALLPDA,
+  //       usdcMint: LOCALNET_USDC_MINT,
+  //       projectAta: PROJECT_ATA,
+  //       systemProgram: anchor.web3.SystemProgram.programId,
+  //       tokenProgram: TOKEN_PROGRAM_ID,
+  //       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+  //     })
+  //     .rpc();
+
+  //   const wallAccount = await program.account.wall.fetch(WALLPDA);
+  //   console.log("wall initial data", wallAccount);
+
+  //   const afterUserAccount = await program.account.user.fetch(userAccountPda);
+  //   console.log("after seeds", afterUserAccount.wallSeeds);
+  // });
+
+  it("Is Initialize Artist", async () => {
     await program.methods
-      .initializeWall()
+      .initializeArtist()
       .accountsPartial({
-        wallOwner: provider.wallet.publicKey,
+        artist: provider.wallet.publicKey,
         userAccount: userAccountPda,
-        wall: WALLPDA,
-        usdcMint: LOCALNET_USDC_MINT,
-        projectAta: PROJECT_ATA,
+        artistFeature,
         systemProgram: anchor.web3.SystemProgram.programId,
-        tokenProgram: TOKEN_PROGRAM_ID,
-        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
       })
       .rpc();
 
-    const wallAccount = await program.account.wall.fetch(WALLPDA);
-    console.log("wall initial data", wallAccount);
+    const artistFeatureAccount = await program.account.artistFeature.fetch(
+      artistFeature
+    );
+    const userAccount = await program.account.user.fetch(userAccountPda);
 
-    const afterUserAccount = await program.account.user.fetch(userAccountPda);
-    console.log("after seeds", afterUserAccount.wallSeeds);
+    expect(userAccount.isArtist).to.be.true;
+    expect(artistFeatureAccount.projects).to.have.lengthOf(15);
+    expect(artistFeatureAccount).to.be.exist;
   });
 });

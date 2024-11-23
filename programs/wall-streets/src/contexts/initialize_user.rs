@@ -38,7 +38,7 @@ impl<'info> InitializeUser<'info> {
         user.bump = bumps.user_account;
         user.name = name;
         user.role = role;
-        user.feature = None;
+        user.is_artist = false;
 
         Ok(())
     }
