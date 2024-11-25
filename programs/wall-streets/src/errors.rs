@@ -9,3 +9,9 @@ pub enum UserError {
     #[msg("Unauthorized role")]
     UnauthorizedRole,
 }
+
+#[error_code]
+pub enum WallError {
+    #[msg("Not space available")]
+    NoSpaceAvailable,
+}

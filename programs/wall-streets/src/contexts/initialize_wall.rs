@@ -42,8 +42,11 @@ impl<'info> InitializeWall<'info> {
     pub fn initialize_wall(&mut self, bumps: &InitializeWallBumps) -> Result<()> {
         msg!("Starting initialize_wall");
 
+        let wall_seed = self.user_account.wall_seeds;
+
         self.wall.set_inner(Wall {
             bump: bumps.wall,
+            wall_seed,
             wall_owner: self.wall_owner.key(),
             artist: None,
             project_ata: self.project_ata.key(),
@@ -51,8 +54,7 @@ impl<'info> InitializeWall<'info> {
             proposal_seeds: 0,
         });
 
-        let user_account = &mut self.user_account;
-        user_account.wall_seeds += 1;
+        self.user_account.wall_seeds += 1;
 
         msg!("Wall initialized");
         Ok(())

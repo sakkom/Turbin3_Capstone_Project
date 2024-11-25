@@ -12,6 +12,7 @@ pub enum Status {
 #[derive(Default)]
 pub struct Wall {
     pub bump: u8,
+    pub wall_seed: u16,
     pub wall_owner: Pubkey,
     pub artist: Option<Pubkey>,
     // pub prie: Price,
@@ -23,5 +24,5 @@ pub struct Wall {
 }
 
 impl Space for Wall {
-    const INIT_SPACE: usize = 8 + 1 + 32 + (1 + 32) + 32 + 2 + 8 + 100;
+    const INIT_SPACE: usize = 8 + 1 + 2 + 32 + (1 + 32) + 32 + 2 + 8 + 100;
 }

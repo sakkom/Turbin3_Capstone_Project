@@ -1,4 +1,3 @@
-use crate::state::Wall;
 use anchor_lang::prelude::*;
 
 pub const MAP_TABLE_SIZE: usize = 30;
@@ -31,9 +30,9 @@ impl Space for User {
 pub struct ArtistFeature {
     pub bump: u8,
     // pub next: Pubkey,
-    pub projects: [Wall; MAX_LIFE_PROJECTS],
+    pub offer_wall: [Pubkey; MAX_LIFE_PROJECTS],
 }
 
 impl Space for ArtistFeature {
-    const INIT_SPACE: usize = 8 + 1 + (Wall::INIT_SPACE - 8) * MAX_LIFE_PROJECTS;
+    const INIT_SPACE: usize = 8 + 1 + (32 * MAX_LIFE_PROJECTS);
 }
