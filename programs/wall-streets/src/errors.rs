@@ -8,10 +8,24 @@ pub enum UserError {
     InvalidRole,
     #[msg("Unauthorized role")]
     UnauthorizedRole,
+    #[msg("Invalid artist")]
+    InvalidArtist,
 }
 
 #[error_code]
 pub enum WallError {
     #[msg("Not space available")]
     NoSpaceAvailable,
+    #[msg("Unexpected status")]
+    UnexpectedStatus,
+    #[msg("Wall already has an arrpvoed proposal")]
+    ProposalExsits,
+}
+
+#[error_code]
+pub enum ExpensesError {
+    #[msg("The deposit amount must meet the offer_price")]
+    InsufficientDeposit,
+    #[msg("insufficient token amount")]
+    InsufficientTokenBalance,
 }

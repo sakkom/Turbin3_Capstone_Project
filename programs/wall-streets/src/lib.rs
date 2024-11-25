@@ -46,4 +46,11 @@ pub mod wall_streets {
 
         Ok(())
     }
+
+    pub fn approve_proposal(ctx: Context<ApproveProposal>, amount: u64) -> Result<()> {
+        ctx.accounts.approve_proposal()?;
+        ctx.accounts.deposit_expenses(amount)?;
+
+        Ok(())
+    }
 }

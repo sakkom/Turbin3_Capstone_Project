@@ -52,6 +52,7 @@ impl<'info> InitializeWall<'info> {
             project_ata: self.project_ata.key(),
             status: Status::PENDING,
             proposal_seeds: 0,
+            proposal: None,
         });
 
         self.user_account.wall_seeds += 1;

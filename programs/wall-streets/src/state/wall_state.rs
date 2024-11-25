@@ -1,5 +1,7 @@
 use anchor_lang::prelude::*;
 
+use super::Proposal;
+
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Default)]
 pub enum Status {
     #[default]
@@ -20,9 +22,9 @@ pub struct Wall {
     pub project_ata: Pubkey,
     pub status: Status,
     pub proposal_seeds: u64,
-    // pub proposal: Optional<Proposal>, //優先
+    pub proposal: Option<Pubkey>, //優先
 }
 
 impl Space for Wall {
-    const INIT_SPACE: usize = 8 + 1 + 2 + 32 + (1 + 32) + 32 + 2 + 8 + 100;
+    const INIT_SPACE: usize = 8 + 1 + 2 + 32 + (1 + 32) + 32 + 2 + 8 + (1 + 32);
 }
