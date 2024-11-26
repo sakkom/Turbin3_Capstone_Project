@@ -9,3 +9,6 @@ pub use proposal::*;
 
 pub mod initialize_artist;
 pub use initialize_artist::*;
+
+pub mod mulitsig;
+pub use mulitsig::*;

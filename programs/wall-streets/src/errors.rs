@@ -29,3 +29,13 @@ pub enum ExpensesError {
     #[msg("insufficient token amount")]
     InsufficientTokenBalance,
 }
+
+#[error_code]
+pub enum MultisigError {
+    #[msg("Invalid multisig signers")]
+    InvalidMultisigSigners,
+    #[msg("not enought signers")]
+    NotEnoughtSigners,
+    #[msg("already signed")]
+    AlreadySigned,
+}

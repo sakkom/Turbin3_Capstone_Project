@@ -6,3 +6,6 @@ pub use wall_state::*;
 
 pub mod proposal_state;
 pub use proposal_state::*;
+
+pub mod multisig_state;
+pub use multisig_state::*;

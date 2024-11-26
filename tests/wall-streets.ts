@@ -26,6 +26,7 @@ describe("wall-streets", () => {
   let WALL_OWENER_ATA: anchor.web3.PublicKey;
   let WALLPDA: anchor.web3.PublicKey;
   let PROPOSALPDA: anchor.web3.PublicKey;
+  let MULTISIG_ACCOUNT: anchor.web3.PublicKey;
 
   const FUN = new anchor.BN(0);
   const ARTIST_NUMBER = new anchor.BN(1);
@@ -287,6 +288,11 @@ describe("wall-streets", () => {
       program.programId
     );
 
+    [MULTISIG_ACCOUNT] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("multisig"), WALLPDA.toBuffer()],
+      program.programId
+    );
+
     await program.methods
       .approveProposal(DEPOSIT_AMOUNT)
       .accountsPartial({
@@ -299,6 +305,7 @@ describe("wall-streets", () => {
         usdcMint: LOCALNET_USDC_MINT,
         projectAta: PROJECT_ATA,
         wallOwnerAta: WALL_OWENER_ATA,
+        multisig: MULTISIG_ACCOUNT,
         systemProgram: anchor.web3.SystemProgram.programId,
         tokenProgram: TOKEN_PROGRAM_ID,
       })
@@ -310,10 +317,53 @@ describe("wall-streets", () => {
     const projectAtaBalance = await provider.connection.getTokenAccountBalance(
       PROJECT_ATA
     );
+    const multisigAccount = await program.account.multisig.fetch(
+      MULTISIG_ACCOUNT
+    );
 
     expect(wallAccount.artist).to.exist;
     expect(wallAccount.status).has.property("draft");
     expect(proposalAccount.status).has.property("draft");
     expect(projectAtaBalance.value.amount).to.eql(DEPOSIT_AMOUNT.toString());
+    expect(multisigAccount).to.be.exist;
+  });
+
+  it("Is kick off project!", async () => {
+    await program.methods
+      .kickOffProject()
+      .accountsPartial({
+        signer: wallOwner.publicKey,
+        wallOwner: wallOwner.publicKey,
+        artist: provider.wallet.publicKey,
+        wallOwnerUserAccount: wallOwnerUserAccountPda,
+        wall: WALLPDA,
+        multisig: MULTISIG_ACCOUNT,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([wallOwner])
+      .rpc();
+
+    const firstSigned = await program.account.multisig.fetch(MULTISIG_ACCOUNT);
+
+    await program.methods
+      .kickOffProject()
+      .accountsPartial({
+        signer: provider.wallet.publicKey,
+        wallOwner: wallOwner.publicKey,
+        artist: provider.wallet.publicKey,
+        wallOwnerUserAccount: wallOwnerUserAccountPda,
+        wall: WALLPDA,
+        multisig: MULTISIG_ACCOUNT,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([payer.payer])
+      .rpc();
+
+    const secondSigned = await program.account.multisig.fetch(MULTISIG_ACCOUNT);
+    const wallAccount = await program.account.wall.fetch(WALLPDA);
+
+    expect(secondSigned.isArtistSigned && secondSigned.isWallOwnerSigned).to.be
+      .true;
+    expect(wallAccount.status).to.have.property("active");
   });
 });

@@ -50,6 +50,13 @@ pub mod wall_streets {
     pub fn approve_proposal(ctx: Context<ApproveProposal>, amount: u64) -> Result<()> {
         ctx.accounts.approve_proposal()?;
         ctx.accounts.deposit_expenses(amount)?;
+        ctx.accounts.initialize_multising_account(&ctx.bumps)?;
+
+        Ok(())
+    }
+
+    pub fn kick_off_project(ctx: Context<KickOffMultisig>) -> Result<()> {
+        ctx.accounts.kick_off_project()?;
 
         Ok(())
     }

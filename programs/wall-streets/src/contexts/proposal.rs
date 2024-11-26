@@ -1,8 +1,8 @@
 use anchor_lang::prelude::*;
 
 use crate::{
-    state::{ArtistFeature, OfferPrice, Proposal, Role, Status, User, Wall},
-    ExpensesError, UserError, WallError,
+    state::{ArtistFeature, Multisig, OfferPrice, Proposal, Role, Status, User, Wall},
+    ExpensesError, MultisigError, UserError, WallError,
 };
 use anchor_spl::token::{transfer_checked, Mint, Token, TokenAccount, TransferChecked};
 
@@ -55,7 +55,7 @@ impl<'info> InitializeProposal<'info> {
         self.proposal.set_inner(Proposal {
             bump: bumps.proposal,
             proposal_seed: self.wall.proposal_seeds,
-            artist: self.artist_user_account.key(),
+            artist: self.artist.key(),
             wall: self.wall.key(),
             offer_price,
             status: Status::default(),
@@ -79,7 +79,7 @@ impl<'info> InitializeProposal<'info> {
             Ok(())
         } else {
             msg!("make next offer_wall account");
-            Err(error!(WallError::NoSpaceAvailable))
+            err!(WallError::NoSpaceAvailable)
         }
     }
 }
@@ -129,6 +129,14 @@ pub struct ApproveProposal<'info> {
       associated_token::authority = wall_owner,
     )]
     pub wall_owner_ata: Box<Account<'info, TokenAccount>>,
+    #[account(
+      init,
+      payer = wall_owner,
+      space = Multisig::INIT_SPACE,
+      seeds = [b"multisig", wall.key().as_ref()],
+      bump
+    )]
+    pub multisig: Box<Account<'info, Multisig>>,
 
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
@@ -137,7 +145,7 @@ pub struct ApproveProposal<'info> {
 impl<'info> ApproveProposal<'info> {
     pub fn approve_proposal(&mut self) -> Result<()> {
         require!(
-            self.artist_user_account.key() == self.proposal.artist.key(),
+            self.artist.key() == self.proposal.artist.key(),
             UserError::InvalidArtist
         );
         require!(
@@ -147,7 +155,7 @@ impl<'info> ApproveProposal<'info> {
         require!(self.wall.proposal.is_none(), WallError::ProposalExsits);
 
         let wall = &mut self.wall;
-        wall.artist = Some(self.artist_user_account.key());
+        wall.artist = Some(self.artist.key());
         wall.proposal = Some(self.proposal.key());
         wall.status = Status::DRAFT;
 
@@ -183,6 +191,25 @@ impl<'info> ApproveProposal<'info> {
         let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
 
         transfer_checked(cpi_ctx, amount, self.usdc_mint.decimals)?;
+
+        Ok(())
+    }
+
+    pub fn initialize_multising_account(&mut self, bumps: &ApproveProposalBumps) -> Result<()> {
+        require!(
+            self.wall_owner.key() == self.wall.wall_owner.key()
+                && self.artist.key() == self.proposal.artist.key(),
+            MultisigError::InvalidMultisigSigners
+        );
+
+        self.multisig.set_inner(Multisig {
+            bump: bumps.multisig,
+            wall: self.wall.key(),
+            wall_owner: self.wall_owner.key(),
+            artist: self.artist.key(),
+            is_wall_owner_signed: false,
+            is_artist_signed: false,
+        });
 
         Ok(())
     }
