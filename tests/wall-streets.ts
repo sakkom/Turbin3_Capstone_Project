@@ -24,6 +24,7 @@ describe("wall-streets", () => {
   let LOCALNET_USDC_MINT: anchor.web3.PublicKey;
   let PROJECT_ATA: anchor.web3.PublicKey;
   let WALL_OWENER_ATA: anchor.web3.PublicKey;
+  let ARTIST_ATA: anchor.web3.PublicKey;
   let WALLPDA: anchor.web3.PublicKey;
   let PROPOSALPDA: anchor.web3.PublicKey;
   let MULTISIG_ACCOUNT: anchor.web3.PublicKey;
@@ -363,8 +364,7 @@ describe("wall-streets", () => {
     const secondSigned = await program.account.multisig.fetch(MULTISIG_ACCOUNT);
     const wallAccount = await program.account.wall.fetch(WALLPDA);
 
-    expect(secondSigned.isArtistSigned && secondSigned.isWallOwnerSigned).to.be
-      .true;
+    expect(secondSigned.isKickOff).to.be.true;
     expect(wallAccount.status).to.have.property("active");
   });
 
@@ -438,7 +438,7 @@ describe("wall-streets", () => {
       program.programId
     );
 
-    const recieptAmount = new anchor.BN(100 * DECIMAL_MULTIPLIER);
+    const recieptAmount = new anchor.BN(900 * DECIMAL_MULTIPLIER);
 
     await program.methods
       .recordRecipt(recieptAmount)
@@ -461,5 +461,94 @@ describe("wall-streets", () => {
       expensesAccount.total.toNumber() + recieptAmount.toNumber()
     );
     expect(afterExpensesAccount.seeds).to.be.eql(expensesAccount.seeds + 1);
+  });
+
+  it("Is first settle signed", async () => {
+    [ARTIST_ATA] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        provider.publicKey.toBuffer(),
+        TOKEN_PROGRAM_ID.toBuffer(),
+        LOCALNET_USDC_MINT.toBuffer(),
+      ],
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+
+    ASSOCIATED_TOKEN_PROGRAM_ID;
+    await program.methods
+      .settleProject()
+      .accounts({
+        signer: provider.wallet.publicKey,
+        artist: provider.wallet.publicKey,
+        wallOwner: wallOwner.publicKey,
+        wallOwnerUserAccount: wallOwnerUserAccountPda,
+        wall: WALLPDA,
+        multisig: MULTISIG_ACCOUNT,
+        usdcMint: LOCALNET_USDC_MINT,
+        projectAta: PROJECT_ATA,
+        wallOwnerAta: WALL_OWENER_ATA,
+        artistAta: ARTIST_ATA,
+        proposal: PROPOSALPDA,
+        expenses: EXPENSES_PDA,
+        systemProgram: anchor.web3.SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      })
+      .rpc();
+
+    const multisigAccount = await program.account.multisig.fetch(
+      MULTISIG_ACCOUNT
+    );
+
+    expect(multisigAccount.isKickOff).to.be.true;
+    expect(multisigAccount.isSettled).to.be.false;
+    expect(multisigAccount.isArtistSigned).to.be.true;
+    expect(multisigAccount.isWallOwnerSigned).to.be.false;
+  });
+
+  it("Is first settle signed", async () => {
+    [ARTIST_ATA] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        provider.publicKey.toBuffer(),
+        TOKEN_PROGRAM_ID.toBuffer(),
+        LOCALNET_USDC_MINT.toBuffer(),
+      ],
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+
+    ASSOCIATED_TOKEN_PROGRAM_ID;
+    await program.methods
+      .settleProject()
+      .accounts({
+        signer: wallOwner.publicKey,
+        artist: provider.wallet.publicKey,
+        wallOwner: wallOwner.publicKey,
+        wallOwnerUserAccount: wallOwnerUserAccountPda,
+        wall: WALLPDA,
+        multisig: MULTISIG_ACCOUNT,
+        usdcMint: LOCALNET_USDC_MINT,
+        projectAta: PROJECT_ATA,
+        wallOwnerAta: WALL_OWENER_ATA,
+        artistAta: ARTIST_ATA,
+        proposal: PROPOSALPDA,
+        expenses: EXPENSES_PDA,
+        systemProgram: anchor.web3.SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+      })
+      .signers([wallOwner])
+      .rpc();
+
+    const multisigAccount = await program.account.multisig.fetch(
+      MULTISIG_ACCOUNT
+    );
+    const artistAtaBalance = await provider.connection.getTokenAccountBalance(
+      ARTIST_ATA
+    );
+    // console.log(artistAtaBalance.value.uiAmount);
+
+    expect(multisigAccount.isKickOff).to.be.true;
+    expect(multisigAccount.isSettled).to.be.true;
+    expect(multisigAccount.isArtistSigned).to.be.true;
+    expect(multisigAccount.isWallOwnerSigned).to.be.true;
   });
 });

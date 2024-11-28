@@ -20,6 +20,10 @@ pub enum WallError {
     UnexpectedStatus,
     #[msg("Wall already has an arrpvoed proposal")]
     ProposalExsits,
+    #[msg("unmuched proposal with this wall")]
+    UnmuchedProposal,
+    #[msg("Invalid budget amount")]
+    InvalidBudget,
 }
 
 #[error_code]
@@ -44,4 +48,6 @@ pub enum MultisigError {
     UnauthorizedSigner,
     #[msg("multisig not cancel bool")]
     NotCancelBool,
+    #[msg("Project must be in kicked off status to proceed")]
+    RequireKickOffStatus,
 }

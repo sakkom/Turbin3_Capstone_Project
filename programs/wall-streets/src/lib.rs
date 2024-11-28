@@ -8,6 +8,7 @@ pub mod errors;
 pub use errors::*;
 pub mod state;
 pub use state::OfferPrice;
+use state::{Multisig, Wall};
 
 #[program]
 pub mod wall_streets {
@@ -77,4 +78,35 @@ pub mod wall_streets {
         ctx.accounts.record_receipt(amount, &ctx.bumps)?;
         Ok(())
     }
+
+    pub fn settle_project(ctx: Context<SettleProject>) -> Result<()> {
+        ctx.accounts.settle_project()?;
+        Ok(())
+    }
+}
+
+pub fn signed_project<'info>(
+    signer: &Signer<'info>,
+    multisig: &mut Account<'info, Multisig>,
+    wall: &Account<'info, Wall>,
+) -> Result<()> {
+    require!(
+        (signer.key() == multisig.artist && signer.key() == wall.artist.unwrap())
+            || (signer.key() == multisig.wall_owner && signer.key() == wall.wall_owner),
+        MultisigError::InvalidMultisigSigners
+    );
+
+    if signer.key() == multisig.wall_owner.key() {
+        require!(!multisig.is_wall_owner_signed, MultisigError::AlreadySigned);
+
+        multisig.is_wall_owner_signed = true;
+    } else if signer.key() == multisig.artist.key() {
+        require!(!multisig.is_artist_signed, MultisigError::AlreadySigned);
+
+        multisig.is_artist_signed = true;
+    } else {
+        return err!(MultisigError::InvalidMultisigSigners);
+    }
+
+    Ok(())
 }

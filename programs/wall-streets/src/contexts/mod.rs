@@ -10,8 +10,11 @@ pub use proposal::*;
 pub mod initialize_artist;
 pub use initialize_artist::*;
 
-pub mod mulitsig;
-pub use mulitsig::*;
+pub mod kick_off;
+pub use kick_off::*;
 
 pub mod expenses;
 pub use expenses::*;
+
+pub mod settle;
+pub use settle::*;

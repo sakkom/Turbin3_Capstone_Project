@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
 use crate::{
-    state::{Expenses, Proposal, Receipt, User, Wall, MAX_RECEIPTS_SIZE},
+    state::{Expenses, Proposal, Receipt, User, Wall},
     ExpensesError, UserError,
 };
 
@@ -46,8 +46,6 @@ impl<'info> InitializeExpenses<'info> {
             wall: self.wall.key(),
             artist: self.signer.key(),
             total: 0,
-            next: Pubkey::default(),
-            receipts: [Pubkey::default(); MAX_RECEIPTS_SIZE],
         });
 
         Ok(())

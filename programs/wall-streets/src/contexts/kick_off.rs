@@ -3,7 +3,7 @@ use anchor_spl::associated_token::AssociatedToken;
 
 use crate::errors::MultisigError;
 use crate::state::{Multisig, Proposal, Role, Status, User, Wall};
-use crate::UserError;
+use crate::{signed_project, UserError};
 use anchor_spl::token::{transfer_checked, Mint, Token, TokenAccount, TransferChecked};
 
 #[derive(Accounts)]
@@ -39,40 +39,14 @@ pub struct KickOffProject<'info> {
 
 impl<'info> KickOffProject<'info> {
     pub fn kick_off_project(&mut self) -> Result<()> {
-        require!(
-            (self.signer.key() == self.multisig.artist
-                && self.signer.key() == self.wall.artist.unwrap())
-                || (self.signer.key() == self.multisig.wall_owner
-                    && self.signer.key() == self.wall.wall_owner),
-            MultisigError::InvalidMultisigSigners
-        );
-
-        self.signed_project()?;
+        signed_project(&self.signer, &mut self.multisig, &self.wall)?;
 
         if self.multisig.is_wall_owner_signed && self.multisig.is_artist_signed {
             self.wall.status = Status::ACTIVE;
-        }
+            self.multisig.is_kick_off = true;
 
-        Ok(())
-    }
-
-    pub fn signed_project(&mut self) -> Result<()> {
-        if self.signer.key() == self.multisig.wall_owner.key() {
-            require!(
-                !self.multisig.is_wall_owner_signed,
-                MultisigError::AlreadySigned
-            );
-
-            self.multisig.is_wall_owner_signed = true;
-        } else if self.signer.key() == self.multisig.artist.key() {
-            require!(
-                !self.multisig.is_artist_signed,
-                MultisigError::AlreadySigned
-            );
-
-            self.multisig.is_artist_signed = true;
-        } else {
-            return err!(MultisigError::InvalidMultisigSigners);
+            self.multisig.is_wall_owner_signed = false;
+            self.multisig.is_artist_signed = false;
         }
 
         Ok(())

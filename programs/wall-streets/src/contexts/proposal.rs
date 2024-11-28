@@ -207,8 +207,10 @@ impl<'info> ApproveProposal<'info> {
             wall: self.wall.key(),
             wall_owner: self.wall_owner.key(),
             artist: self.artist.key(),
-            is_wall_owner_signed: false,
-            is_artist_signed: false,
+            is_wall_owner_signed: bool::default(),
+            is_artist_signed: bool::default(),
+            is_kick_off: bool::default(),
+            is_settled: bool::default(),
         });
 
         Ok(())

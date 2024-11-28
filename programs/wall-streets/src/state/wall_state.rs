@@ -1,13 +1,12 @@
 use anchor_lang::prelude::*;
 
-use super::Proposal;
-
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, Default)]
 pub enum Status {
     #[default]
     PENDING,
     DRAFT,
     ACTIVE,
+    DONE,
 }
 
 #[account]
