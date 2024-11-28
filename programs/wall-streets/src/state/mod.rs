@@ -9,3 +9,6 @@ pub use proposal_state::*;
 
 pub mod multisig_state;
 pub use multisig_state::*;
+
+pub mod expenses_state;
+pub use expenses_state::*;

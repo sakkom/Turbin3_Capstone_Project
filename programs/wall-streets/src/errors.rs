@@ -28,6 +28,8 @@ pub enum ExpensesError {
     InsufficientDeposit,
     #[msg("insufficient token amount")]
     InsufficientTokenBalance,
+    #[msg("Total expenses amount exceeds the proposal cost")]
+    ExceedsBudget,
 }
 
 #[error_code]

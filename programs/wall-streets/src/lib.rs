@@ -67,4 +67,14 @@ pub mod wall_streets {
 
         Ok(())
     }
+
+    pub fn initialize_expenses(ctx: Context<InitializeExpenses>) -> Result<()> {
+        ctx.accounts.initialize_expenses(&ctx.bumps)?;
+        Ok(())
+    }
+
+    pub fn record_recipt(ctx: Context<RecordRecipt>, amount: u64) -> Result<()> {
+        ctx.accounts.record_receipt(amount, &ctx.bumps)?;
+        Ok(())
+    }
 }

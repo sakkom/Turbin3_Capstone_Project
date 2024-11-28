@@ -12,3 +12,6 @@ pub use initialize_artist::*;
 
 pub mod mulitsig;
 pub use mulitsig::*;
+
+pub mod expenses;
+pub use expenses::*;

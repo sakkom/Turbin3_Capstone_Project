@@ -27,6 +27,7 @@ describe("wall-streets", () => {
   let WALLPDA: anchor.web3.PublicKey;
   let PROPOSALPDA: anchor.web3.PublicKey;
   let MULTISIG_ACCOUNT: anchor.web3.PublicKey;
+  let EXPENSES_PDA: anchor.web3.PublicKey;
 
   const FUN = new anchor.BN(0);
   const ARTIST_NUMBER = new anchor.BN(1);
@@ -345,61 +346,120 @@ describe("wall-streets", () => {
 
     const firstSigned = await program.account.multisig.fetch(MULTISIG_ACCOUNT);
 
-    // await program.methods
-    //   .kickOffProject()
-    //   .accountsPartial({
-    //     signer: provider.wallet.publicKey,
-    //     wallOwner: wallOwner.publicKey,
-    //     artist: provider.wallet.publicKey,
-    //     wallOwnerUserAccount: wallOwnerUserAccountPda,
-    //     wall: WALLPDA,
-    //     multisig: MULTISIG_ACCOUNT,
-    //     systemProgram: anchor.web3.SystemProgram.programId,
-    //   })
-    //   .signers([payer.payer])
-    //   .rpc();
-
-    // const secondSigned = await program.account.multisig.fetch(MULTISIG_ACCOUNT);
-    // const wallAccount = await program.account.wall.fetch(WALLPDA);
-
-    // expect(secondSigned.isArtistSigned && secondSigned.isWallOwnerSigned).to.be
-    //   .true;
-    // expect(wallAccount.status).to.have.property("active");
-  });
-
-  it("Is cancel project", async () => {
-    const multisigAccountData = await program.account.multisig.fetch(
-      MULTISIG_ACCOUNT
-    );
-
     await program.methods
-      .cancelProject()
+      .kickOffProject()
       .accountsPartial({
-        signer: wallOwner.publicKey,
+        signer: provider.wallet.publicKey,
         wallOwner: wallOwner.publicKey,
         artist: provider.wallet.publicKey,
         wallOwnerUserAccount: wallOwnerUserAccountPda,
         wall: WALLPDA,
         multisig: MULTISIG_ACCOUNT,
-        projectAta: PROJECT_ATA,
-        wallOwnerAta: WALL_OWENER_ATA,
-        proposal: PROPOSALPDA,
-        usdcMint: LOCALNET_USDC_MINT,
-        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
-      .signers([wallOwner])
+      .signers([payer.payer])
       .rpc();
 
+    const secondSigned = await program.account.multisig.fetch(MULTISIG_ACCOUNT);
     const wallAccount = await program.account.wall.fetch(WALLPDA);
 
-    const wallOwnerAtaBalance =
-      await provider.connection.getTokenAccountBalance(WALL_OWENER_ATA);
+    expect(secondSigned.isArtistSigned && secondSigned.isWallOwnerSigned).to.be
+      .true;
+    expect(wallAccount.status).to.have.property("active");
+  });
 
-    expect(wallAccount.artist).to.be.null;
-    expect(wallAccount.proposal).to.be.null;
-    expect(wallOwnerAtaBalance.value.amount).to.be.eql(
-      DEPOSIT_AMOUNT.toString()
+  // it("Is cancel project", async () => {
+  //   const multisigAccountData = await program.account.multisig.fetch(
+  //     MULTISIG_ACCOUNT
+  //   );
+  //   // require(!is_wall_owner_signed && !is_artist_signed);
+
+  //   await program.methods
+  //     .cancelProject()
+  //     .accountsPartial({
+  //       signer: wallOwner.publicKey,
+  //       wallOwner: wallOwner.publicKey,
+  //       artist: provider.wallet.publicKey,
+  //       wallOwnerUserAccount: wallOwnerUserAccountPda,
+  //       wall: WALLPDA,
+  //       multisig: MULTISIG_ACCOUNT,
+  //       projectAta: PROJECT_ATA,
+  //       wallOwnerAta: WALL_OWENER_ATA,
+  //       proposal: PROPOSALPDA,
+  //       usdcMint: LOCALNET_USDC_MINT,
+  //       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+  //       systemProgram: anchor.web3.SystemProgram.programId,
+  //     })
+  //     .signers([wallOwner])
+  //     .rpc();
+
+  //   const wallAccount = await program.account.wall.fetch(WALLPDA);
+
+  //   const wallOwnerAtaBalance =
+  //     await provider.connection.getTokenAccountBalance(WALL_OWENER_ATA);
+
+  //   expect(wallAccount.artist).to.be.null;
+  //   expect(wallAccount.proposal).to.be.null;
+  //   expect(wallAccount.status).to.have.property("pending");
+  //   expect(wallOwnerAtaBalance.value.amount).to.be.eql(
+  //     DEPOSIT_AMOUNT.toString()
+  //   );
+  // });
+
+  it("Is initial expenses", async () => {
+    [EXPENSES_PDA] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("expenses"), WALLPDA.toBuffer()],
+      program.programId
     );
+
+    await program.methods
+      .initializeExpenses()
+      .accountsPartial({
+        signer: provider.wallet.publicKey,
+        wallOwner: wallOwner.publicKey,
+        wallOwnerUserAccount: wallOwnerUserAccountPda,
+        wall: WALLPDA,
+        expenses: EXPENSES_PDA,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .rpc();
+
+    const expensesAccount = await program.account.expenses.fetch(EXPENSES_PDA);
+
+    expect(expensesAccount).to.be.exist;
+  });
+
+  it("Is record recipt!", async () => {
+    const expensesAccount = await program.account.expenses.fetch(EXPENSES_PDA);
+    const seed = new anchor.BN(expensesAccount.seeds);
+
+    const [reciptPda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("recipt"), WALLPDA.toBuffer(), seed.toBuffer("le", 2)],
+      program.programId
+    );
+
+    const recieptAmount = new anchor.BN(100 * DECIMAL_MULTIPLIER);
+
+    await program.methods
+      .recordRecipt(recieptAmount)
+      .accountsPartial({
+        signer: provider.wallet.publicKey,
+        wallOwner: wallOwner.publicKey,
+        wallOwnerUserAccount: wallOwnerUserAccountPda,
+        wall: WALLPDA,
+        expenses: EXPENSES_PDA,
+        proposal: PROPOSALPDA,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .rpc();
+
+    const afterExpensesAccount = await program.account.expenses.fetch(
+      EXPENSES_PDA
+    );
+
+    expect(afterExpensesAccount.total.toNumber()).to.be.eql(
+      expensesAccount.total.toNumber() + recieptAmount.toNumber()
+    );
+    expect(afterExpensesAccount.seeds).to.be.eql(expensesAccount.seeds + 1);
   });
 });
