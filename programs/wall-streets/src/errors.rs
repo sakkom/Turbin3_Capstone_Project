@@ -38,4 +38,8 @@ pub enum MultisigError {
     NotEnoughtSigners,
     #[msg("already signed")]
     AlreadySigned,
+    #[msg("UnauthorizedSigner")]
+    UnauthorizedSigner,
+    #[msg("multisig not cancel bool")]
+    NotCancelBool,
 }

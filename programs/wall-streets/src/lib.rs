@@ -55,8 +55,15 @@ pub mod wall_streets {
         Ok(())
     }
 
-    pub fn kick_off_project(ctx: Context<KickOffMultisig>) -> Result<()> {
+    pub fn kick_off_project(ctx: Context<KickOffProject>) -> Result<()> {
         ctx.accounts.kick_off_project()?;
+
+        Ok(())
+    }
+
+    pub fn cancel_project(ctx: Context<CancelProject>) -> Result<()> {
+        ctx.accounts.cancel_project()?;
+        ctx.accounts.refund_project_deposit()?;
 
         Ok(())
     }

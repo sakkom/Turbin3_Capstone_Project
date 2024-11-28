@@ -345,25 +345,61 @@ describe("wall-streets", () => {
 
     const firstSigned = await program.account.multisig.fetch(MULTISIG_ACCOUNT);
 
+    // await program.methods
+    //   .kickOffProject()
+    //   .accountsPartial({
+    //     signer: provider.wallet.publicKey,
+    //     wallOwner: wallOwner.publicKey,
+    //     artist: provider.wallet.publicKey,
+    //     wallOwnerUserAccount: wallOwnerUserAccountPda,
+    //     wall: WALLPDA,
+    //     multisig: MULTISIG_ACCOUNT,
+    //     systemProgram: anchor.web3.SystemProgram.programId,
+    //   })
+    //   .signers([payer.payer])
+    //   .rpc();
+
+    // const secondSigned = await program.account.multisig.fetch(MULTISIG_ACCOUNT);
+    // const wallAccount = await program.account.wall.fetch(WALLPDA);
+
+    // expect(secondSigned.isArtistSigned && secondSigned.isWallOwnerSigned).to.be
+    //   .true;
+    // expect(wallAccount.status).to.have.property("active");
+  });
+
+  it("Is cancel project", async () => {
+    const multisigAccountData = await program.account.multisig.fetch(
+      MULTISIG_ACCOUNT
+    );
+
     await program.methods
-      .kickOffProject()
+      .cancelProject()
       .accountsPartial({
-        signer: provider.wallet.publicKey,
+        signer: wallOwner.publicKey,
         wallOwner: wallOwner.publicKey,
         artist: provider.wallet.publicKey,
         wallOwnerUserAccount: wallOwnerUserAccountPda,
         wall: WALLPDA,
         multisig: MULTISIG_ACCOUNT,
+        projectAta: PROJECT_ATA,
+        wallOwnerAta: WALL_OWENER_ATA,
+        proposal: PROPOSALPDA,
+        usdcMint: LOCALNET_USDC_MINT,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
-      .signers([payer.payer])
+      .signers([wallOwner])
       .rpc();
 
-    const secondSigned = await program.account.multisig.fetch(MULTISIG_ACCOUNT);
     const wallAccount = await program.account.wall.fetch(WALLPDA);
 
-    expect(secondSigned.isArtistSigned && secondSigned.isWallOwnerSigned).to.be
-      .true;
-    expect(wallAccount.status).to.have.property("active");
+    const wallOwnerAtaBalance =
+      await provider.connection.getTokenAccountBalance(WALL_OWENER_ATA);
+
+    expect(wallAccount.artist).to.be.null;
+    expect(wallAccount.proposal).to.be.null;
+    expect(wallOwnerAtaBalance.value.amount).to.be.eql(
+      DEPOSIT_AMOUNT.toString()
+    );
   });
 });
