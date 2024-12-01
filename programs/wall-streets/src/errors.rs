@@ -51,3 +51,9 @@ pub enum MultisigError {
     #[msg("Project must be in kicked off status to proceed")]
     RequireKickOffStatus,
 }
+
+#[error_code]
+pub enum ContractError {
+    #[msg("Invalid token balance")]
+    InvalidTokenBalance,
+}

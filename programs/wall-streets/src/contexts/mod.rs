@@ -18,3 +18,6 @@ pub use expenses::*;
 
 pub mod settle;
 pub use settle::*;
+
+pub mod nft_contract;
+pub use nft_contract::*;

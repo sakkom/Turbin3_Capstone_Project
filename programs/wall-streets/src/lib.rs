@@ -83,6 +83,25 @@ pub mod wall_streets {
         ctx.accounts.settle_project()?;
         Ok(())
     }
+
+    pub fn init_nft(
+        ctx: Context<InitContractNft>,
+        metadata_bump: u8,
+        edition_bump: u8,
+    ) -> Result<()> {
+        ctx.accounts.create_metadata(&ctx.bumps)?;
+        ctx.accounts.mint_to_admin()?;
+        ctx.accounts.create_master_edition()?;
+
+        Ok(())
+    }
+
+    pub fn mint_nft(ctx: Context<MintContract>, metadata_bump: u8, edition_bump: u8) -> Result<()> {
+        ctx.accounts.mint_new_mint()?;
+        ctx.accounts.mint_nft()?;
+
+        Ok(())
+    }
 }
 
 pub fn signed_project<'info>(

@@ -12,3 +12,6 @@ pub use multisig_state::*;
 
 pub mod expenses_state;
 pub use expenses_state::*;
+
+pub mod admin_state;
+pub use admin_state::*;

@@ -8,8 +8,26 @@ import {
   createMint,
   getOrCreateAssociatedTokenAccount,
   mintTo,
+  getAssociatedTokenAddress,
 } from "@solana/spl-token";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
+import {
+  findMetadataPda,
+  findMasterEditionPda,
+  mplTokenMetadata,
+  MPL_TOKEN_METADATA_PROGRAM_ID,
+  findEditionMarkerPda,
+} from "@metaplex-foundation/mpl-token-metadata";
+import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
+import {
+  KeypairSigner,
+  PublicKey,
+  createSignerFromKeypair,
+  generateSigner,
+  keypairIdentity,
+  percentAmount,
+  publicKey,
+} from "@metaplex-foundation/umi";
 
 describe("wall-streets", () => {
   // Configure the client to use the local cluster.
@@ -20,6 +38,15 @@ describe("wall-streets", () => {
 
   const payer = provider.wallet as NodeWallet;
   let wallOwner = anchor.web3.Keypair.generate();
+  let admin = anchor.web3.Keypair.generate();
+
+  const umi = createUmi(provider.connection);
+  const adminWallet = umi.eddsa.createKeypairFromSecretKey(
+    new Uint8Array(admin.secretKey)
+  );
+  const adminSigner = createSignerFromKeypair(umi, adminWallet);
+  umi.use(keypairIdentity(adminSigner));
+  umi.use(mplTokenMetadata());
 
   let LOCALNET_USDC_MINT: anchor.web3.PublicKey;
   let PROJECT_ATA: anchor.web3.PublicKey;
@@ -29,6 +56,12 @@ describe("wall-streets", () => {
   let PROPOSALPDA: anchor.web3.PublicKey;
   let MULTISIG_ACCOUNT: anchor.web3.PublicKey;
   let EXPENSES_PDA: anchor.web3.PublicKey;
+  let WALL_MINT: anchor.web3.PublicKey;
+  let MASTER_EDITION: anchor.web3.PublicKey;
+  let MASTER_EDITION_BUMP: number;
+  let ORIGIN_METADATA: anchor.web3.PublicKey;
+  let ORIGIN_METADATA_BUMP: number;
+  let AMIND_NFT_ATA: anchor.web3.PublicKey;
 
   const FUN = new anchor.BN(0);
   const ARTIST_NUMBER = new anchor.BN(1);
@@ -80,6 +113,12 @@ describe("wall-streets", () => {
       1 * anchor.web3.LAMPORTS_PER_SOL
     );
     await provider.connection.confirmTransaction(wallOwnerAirdrop);
+
+    const adminAirdrop = await provider.connection.requestAirdrop(
+      admin.publicKey,
+      1 * anchor.web3.LAMPORTS_PER_SOL
+    );
+    await provider.connection.confirmTransaction(adminAirdrop);
 
     WALL_OWENER_ATA = (
       await getOrCreateAssociatedTokenAccount(
@@ -550,5 +589,133 @@ describe("wall-streets", () => {
     expect(multisigAccount.isSettled).to.be.true;
     expect(multisigAccount.isArtistSigned).to.be.true;
     expect(multisigAccount.isWallOwnerSigned).to.be.true;
+  });
+
+  it("Is metadata creation", async () => {
+    [WALL_MINT] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("contract"), WALLPDA.toBuffer()],
+      program.programId
+    );
+
+    [AMIND_NFT_ATA] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        admin.publicKey.toBuffer(),
+        TOKEN_PROGRAM_ID.toBuffer(),
+        WALL_MINT.toBuffer(),
+      ],
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+
+    [ORIGIN_METADATA, ORIGIN_METADATA_BUMP] =
+      anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("metadata"),
+          new anchor.web3.PublicKey(MPL_TOKEN_METADATA_PROGRAM_ID).toBuffer(),
+          WALL_MINT.toBuffer(),
+        ],
+        new anchor.web3.PublicKey(MPL_TOKEN_METADATA_PROGRAM_ID)
+      );
+
+    [MASTER_EDITION, MASTER_EDITION_BUMP] =
+      anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("metadata"),
+          new anchor.web3.PublicKey(MPL_TOKEN_METADATA_PROGRAM_ID).toBuffer(),
+          WALL_MINT.toBuffer(),
+          Buffer.from("edition"),
+        ],
+        new anchor.web3.PublicKey(MPL_TOKEN_METADATA_PROGRAM_ID)
+      );
+
+    await program.methods
+      .initNft(ORIGIN_METADATA_BUMP, MASTER_EDITION_BUMP)
+      .accountsPartial({
+        admin: admin.publicKey,
+        wall: WALLPDA,
+        nftMint: WALL_MINT,
+        adminAta: AMIND_NFT_ATA,
+        metadata: ORIGIN_METADATA,
+        edition: MASTER_EDITION,
+        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+        systemProgram: anchor.web3.SystemProgram.programId,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        metadataProgram: MPL_TOKEN_METADATA_PROGRAM_ID,
+      })
+      .signers([admin])
+      .rpc();
+
+    const tokenInfo = await provider.connection.getAccountInfo(WALL_MINT);
+    console.log("set nft", tokenInfo);
+  });
+
+  it("Is mint contract!", async () => {
+    const [NEW_MINT] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("contract"),
+        WALLPDA.toBuffer(),
+        provider.wallet.publicKey.toBuffer(),
+      ], //be user_account.key()
+      program.programId
+    );
+
+    const newMintAta = await getAssociatedTokenAddress(
+      NEW_MINT,
+      provider.wallet.publicKey,
+      false,
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+
+    const [NEW_METADATA] = findMetadataPda(umi, {
+      mint: publicKey(NEW_MINT),
+    });
+
+    const [NEW_EDITION] = findMasterEditionPda(umi, {
+      mint: publicKey(NEW_MINT),
+    });
+
+    const [editionMarkPda] = findEditionMarkerPda(umi, {
+      mint: publicKey(WALL_MINT),
+      editionMarker: Math.floor(1 / 248).toString(),
+    });
+
+    const masterEditionAtaBlance =
+      await provider.connection.getTokenAccountBalance(AMIND_NFT_ATA);
+    console.log("edition amount", masterEditionAtaBlance.value.uiAmount);
+
+    console.log(ORIGIN_METADATA);
+    console.log(MASTER_EDITION);
+    console.log(NEW_MINT);
+    console.log(NEW_METADATA);
+    console.log(NEW_EDITION);
+    console.log(editionMarkPda);
+    console.log(WALL_MINT);
+    console.log(admin.publicKey.toString());
+
+    await program.methods
+      .mintNft(ORIGIN_METADATA_BUMP, MASTER_EDITION_BUMP)
+      .accounts({
+        signer: provider.wallet.publicKey,
+        wall: WALLPDA,
+        editionMarkPda,
+        metadataMint: WALL_MINT,
+        metadata: ORIGIN_METADATA,
+        masterEdition: MASTER_EDITION,
+        admin_ata: AMIND_NFT_ATA,
+        admin: admin.publicKey,
+        newMint: NEW_MINT,
+        newMintAta,
+        newMetadata: NEW_METADATA,
+        newEdition: NEW_EDITION,
+        // editionAuthority: provider.wallet.publicKey,
+        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+        systemProgram: anchor.web3.SystemProgram.programId,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        metadataProgram: MPL_TOKEN_METADATA_PROGRAM_ID,
+      })
+      .signers([admin, payer.payer])
+      .rpc();
   });
 });

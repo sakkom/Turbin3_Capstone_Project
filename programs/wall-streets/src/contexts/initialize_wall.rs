@@ -48,11 +48,13 @@ impl<'info> InitializeWall<'info> {
             bump: bumps.wall,
             wall_seed,
             wall_owner: self.wall_owner.key(),
+            wall_owner_user_account: self.user_account.key(),
             artist: None,
             project_ata: self.project_ata.key(),
             status: Status::PENDING,
             proposal_seeds: 0,
             proposal: None,
+            nft_bump: None,
         });
 
         self.user_account.wall_seeds += 1;
