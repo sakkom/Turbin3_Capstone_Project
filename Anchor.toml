@@ -5,18 +5,18 @@
 resolution = true
 skip-lint = false
 
-[programs.localnet]
-wall_streets = "52RpWzznoBMHkRJsHNyXXsU5AxqZxYXn9KcyyL8jNJsA"
+# [programs.localnet]
+# wall_streets = "52RpWzznoBMHkRJsHNyXXsU5AxqZxYXn9KcyyL8jNJsA"
 
-# [programs.devnet]
-# wall_streets = "NuRUuEzwhe5VFVJhZNGSzhZKPeeiyq1RhdeDQLiNgCa"
+[programs.devnet]
+wall_streets = "NuRUuEzwhe5VFVJhZNGSzhZKPeeiyq1RhdeDQLiNgCa"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
-# cluster = "devnet"
+# cluster = "Localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
@@ -24,6 +24,13 @@ test = "RUST_LOG=debug yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/
 
 # [test.validator]
 # url = "https://api.mainnet-beta.solana.com"
+
+[workspace]
+types = "program_types"
+members = ["programs/*"]
+
+[workspace.metadata]
+bpf-program-max-size = "600000"
 
 [test.validator]
 url = "https://api.devnet.solana.com"
