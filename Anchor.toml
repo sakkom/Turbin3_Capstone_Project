@@ -8,18 +8,25 @@ skip-lint = false
 [programs.localnet]
 wall_streets = "52RpWzznoBMHkRJsHNyXXsU5AxqZxYXn9KcyyL8jNJsA"
 
+# [programs.devnet]
+# wall_streets = "NuRUuEzwhe5VFVJhZNGSzhZKPeeiyq1RhdeDQLiNgCa"
+
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
 cluster = "Localnet"
+# cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
 test = "RUST_LOG=debug yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 
+# [test.validator]
+# url = "https://api.mainnet-beta.solana.com"
+
 [test.validator]
-url = "https://api.mainnet-beta.solana.com"
+url = "https://api.devnet.solana.com"
 
 [[test.validator.clone]]
 address = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"

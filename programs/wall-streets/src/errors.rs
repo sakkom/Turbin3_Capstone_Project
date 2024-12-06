@@ -56,4 +56,8 @@ pub enum MultisigError {
 pub enum ContractError {
     #[msg("Invalid token balance")]
     InvalidTokenBalance,
+    #[msg("Invalid User")]
+    InvalidUser,
+    #[msg("AlreadyMintEditonMax")]
+    AlreadyMintEditonMax,
 }

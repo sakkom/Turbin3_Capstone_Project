@@ -21,3 +21,6 @@ pub use settle::*;
 
 pub mod nft_contract;
 pub use nft_contract::*;
+
+pub mod close_accounts;
+pub use close_accounts::*;

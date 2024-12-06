@@ -86,8 +86,6 @@ impl<'info> SettleProject<'info> {
         signed_project(&self.signer, &mut self.multisig, &self.wall)?;
 
         if self.multisig.is_wall_owner_signed && self.multisig.is_artist_signed {
-            self.wall.status = Status::DONE;
-
             let (unused_cost, artist_payment) = self.calulate_amounts()?;
 
             self.refund_unused_cost(unused_cost)?;

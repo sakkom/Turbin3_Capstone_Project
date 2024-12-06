@@ -84,22 +84,45 @@ pub mod wall_streets {
         Ok(())
     }
 
-    pub fn init_nft(
-        ctx: Context<InitContractNft>,
-        metadata_bump: u8,
-        edition_bump: u8,
-    ) -> Result<()> {
+    pub fn init_nft(ctx: Context<InitContractNft>) -> Result<()> {
         ctx.accounts.create_metadata(&ctx.bumps)?;
-        ctx.accounts.mint_to_admin()?;
+        ctx.accounts.mint_to_archive()?;
         ctx.accounts.create_master_edition()?;
+
+        ctx.accounts.push_wall_mint()?;
 
         Ok(())
     }
 
     pub fn mint_nft(ctx: Context<MintContract>, metadata_bump: u8, edition_bump: u8) -> Result<()> {
-        ctx.accounts.mint_new_mint()?;
-        ctx.accounts.mint_nft()?;
+        ctx.accounts.mint_edition_mint()?;
+        ctx.accounts.create_edition(&ctx.program_id)?;
 
+        Ok(())
+    }
+
+    pub fn close_accounts(ctx: Context<CloseAccounts>) -> Result<()> {
+        ctx.accounts.close_accounts()?;
+
+        let wall = ctx.accounts.wall.key();
+
+        for remainig in ctx.remaining_accounts.iter() {
+            for i in 0..ctx.accounts.expenses.seeds {
+                let i_bytes = i.to_le_bytes();
+                let seeds = [b"receipt".as_ref(), wall.as_ref(), i_bytes.as_ref()];
+
+                let (receipt_pda, _) = Pubkey::find_program_address(&seeds, &ctx.program_id);
+
+                if receipt_pda == remainig.key() {
+                    let dest = ctx.accounts.signer.lamports();
+                    **ctx.accounts.signer.lamports.borrow_mut() =
+                        dest.checked_add(remainig.lamports()).unwrap();
+                    **remainig.lamports.borrow_mut() = 0;
+
+                    break;
+                }
+            }
+        }
         Ok(())
     }
 }

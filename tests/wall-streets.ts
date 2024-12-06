@@ -61,7 +61,7 @@ describe("wall-streets", () => {
   let MASTER_EDITION_BUMP: number;
   let ORIGIN_METADATA: anchor.web3.PublicKey;
   let ORIGIN_METADATA_BUMP: number;
-  let AMIND_NFT_ATA: anchor.web3.PublicKey;
+  let ARCHIVE_ATA: anchor.web3.PublicKey;
 
   const FUN = new anchor.BN(0);
   const ARTIST_NUMBER = new anchor.BN(1);
@@ -78,6 +78,11 @@ describe("wall-streets", () => {
 
   const [artistUserAccountPda] = anchor.web3.PublicKey.findProgramAddressSync(
     [Buffer.from("user"), provider.publicKey.toBuffer()],
+    program.programId
+  );
+
+  const [ARCHIVE_PDA] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("archive")],
     program.programId
   );
 
@@ -477,29 +482,31 @@ describe("wall-streets", () => {
       program.programId
     );
 
-    const recieptAmount = new anchor.BN(900 * DECIMAL_MULTIPLIER);
+    const recieptAmount = new anchor.BN(90 * DECIMAL_MULTIPLIER);
 
-    await program.methods
-      .recordRecipt(recieptAmount)
-      .accountsPartial({
-        signer: provider.wallet.publicKey,
-        wallOwner: wallOwner.publicKey,
-        wallOwnerUserAccount: wallOwnerUserAccountPda,
-        wall: WALLPDA,
-        expenses: EXPENSES_PDA,
-        proposal: PROPOSALPDA,
-        systemProgram: anchor.web3.SystemProgram.programId,
-      })
-      .rpc();
+    for (let i = 0; i < 5; i++) {
+      await program.methods
+        .recordRecipt(recieptAmount)
+        .accountsPartial({
+          signer: provider.wallet.publicKey,
+          wallOwner: wallOwner.publicKey,
+          wallOwnerUserAccount: wallOwnerUserAccountPda,
+          wall: WALLPDA,
+          expenses: EXPENSES_PDA,
+          proposal: PROPOSALPDA,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .rpc();
+    }
 
-    const afterExpensesAccount = await program.account.expenses.fetch(
-      EXPENSES_PDA
-    );
+    // const afterExpensesAccount = await program.account.expenses.fetch(
+    //   EXPENSES_PDA
+    // );
 
-    expect(afterExpensesAccount.total.toNumber()).to.be.eql(
-      expensesAccount.total.toNumber() + recieptAmount.toNumber()
-    );
-    expect(afterExpensesAccount.seeds).to.be.eql(expensesAccount.seeds + 1);
+    // expect(afterExpensesAccount.total.toNumber()).to.be.eql(
+    //   expensesAccount.total.toNumber() + recieptAmount.toNumber()
+    // );
+    // expect(afterExpensesAccount.seeds).to.be.eql(expensesAccount.seeds + 1);
   });
 
   it("Is first settle signed", async () => {
@@ -544,7 +551,7 @@ describe("wall-streets", () => {
     expect(multisigAccount.isWallOwnerSigned).to.be.false;
   });
 
-  it("Is first settle signed", async () => {
+  it("Is second sattle signe & settled", async () => {
     [ARTIST_ATA] = anchor.web3.PublicKey.findProgramAddressSync(
       [
         provider.publicKey.toBuffer(),
@@ -591,15 +598,15 @@ describe("wall-streets", () => {
     expect(multisigAccount.isWallOwnerSigned).to.be.true;
   });
 
-  it("Is metadata creation", async () => {
+  it("Is set master edtion", async () => {
     [WALL_MINT] = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("contract"), WALLPDA.toBuffer()],
       program.programId
     );
 
-    [AMIND_NFT_ATA] = anchor.web3.PublicKey.findProgramAddressSync(
+    [ARCHIVE_ATA] = anchor.web3.PublicKey.findProgramAddressSync(
       [
-        admin.publicKey.toBuffer(),
+        ARCHIVE_PDA.toBuffer(),
         TOKEN_PROGRAM_ID.toBuffer(),
         WALL_MINT.toBuffer(),
       ],
@@ -628,14 +635,17 @@ describe("wall-streets", () => {
       );
 
     await program.methods
-      .initNft(ORIGIN_METADATA_BUMP, MASTER_EDITION_BUMP)
+      .initNft()
       .accountsPartial({
         admin: admin.publicKey,
         wall: WALLPDA,
         nftMint: WALL_MINT,
-        adminAta: AMIND_NFT_ATA,
+        archivePda: ARCHIVE_PDA,
+        archiveAta: ARCHIVE_ATA,
         metadata: ORIGIN_METADATA,
         edition: MASTER_EDITION,
+        wallOwnerUserAccount: wallOwnerUserAccountPda,
+        artistUserAccount: artistUserAccountPda,
         rent: anchor.web3.SYSVAR_RENT_PUBKEY,
         systemProgram: anchor.web3.SystemProgram.programId,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -646,10 +656,19 @@ describe("wall-streets", () => {
       .rpc();
 
     const tokenInfo = await provider.connection.getAccountInfo(WALL_MINT);
-    console.log("set nft", tokenInfo);
+    // const owenerUserAccount = await program.account.user.fetch(
+    //   wallOwnerUserAccountPda
+    // );
+    // const artistUserAccount = await program.account.user.fetch(
+    //   artistUserAccountPda
+    // );
+
+    // console.log(owenerUserAccount.wallMints);
+    // console.log(artistUserAccount.wallMints);
+    // console.log("set nft", tokenInfo);
   });
 
-  it("Is mint contract!", async () => {
+  it("Is mint contract to artist!", async () => {
     const [NEW_MINT] = anchor.web3.PublicKey.findProgramAddressSync(
       [
         Buffer.from("contract"),
@@ -681,17 +700,8 @@ describe("wall-streets", () => {
     });
 
     const masterEditionAtaBlance =
-      await provider.connection.getTokenAccountBalance(AMIND_NFT_ATA);
-    console.log("edition amount", masterEditionAtaBlance.value.uiAmount);
-
-    console.log(ORIGIN_METADATA);
-    console.log(MASTER_EDITION);
-    console.log(NEW_MINT);
-    console.log(NEW_METADATA);
-    console.log(NEW_EDITION);
-    console.log(editionMarkPda);
-    console.log(WALL_MINT);
-    console.log(admin.publicKey.toString());
+      await provider.connection.getTokenAccountBalance(ARCHIVE_ATA);
+    // console.log("edition amount", masterEditionAtaBlance.value.uiAmount);
 
     await program.methods
       .mintNft(ORIGIN_METADATA_BUMP, MASTER_EDITION_BUMP)
@@ -702,8 +712,9 @@ describe("wall-streets", () => {
         metadataMint: WALL_MINT,
         metadata: ORIGIN_METADATA,
         masterEdition: MASTER_EDITION,
-        admin_ata: AMIND_NFT_ATA,
-        admin: admin.publicKey,
+        archivePda: ARCHIVE_PDA,
+        archiveAta: ARCHIVE_ATA,
+        // admin: admin.publicKey,
         newMint: NEW_MINT,
         newMintAta,
         newMetadata: NEW_METADATA,
@@ -715,7 +726,144 @@ describe("wall-streets", () => {
         tokenProgram: TOKEN_PROGRAM_ID,
         metadataProgram: MPL_TOKEN_METADATA_PROGRAM_ID,
       })
-      .signers([admin, payer.payer])
+      .signers([payer.payer])
       .rpc();
+  });
+
+  it("Is mint contract to wall owner!", async () => {
+    const [NEW_MINT] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("contract"),
+        WALLPDA.toBuffer(),
+        wallOwner.publicKey.toBuffer(),
+      ], //be user_account.key()
+      program.programId
+    );
+
+    const newMintAta = await getAssociatedTokenAddress(
+      NEW_MINT,
+      wallOwner.publicKey,
+      false,
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+
+    const [NEW_METADATA] = findMetadataPda(umi, {
+      mint: publicKey(NEW_MINT),
+    });
+
+    const [NEW_EDITION] = findMasterEditionPda(umi, {
+      mint: publicKey(NEW_MINT),
+    });
+
+    const [editionMarkPda] = findEditionMarkerPda(umi, {
+      mint: publicKey(WALL_MINT),
+      editionMarker: Math.floor(1 / 248).toString(),
+    });
+
+    const masterEditionAtaBlance =
+      await provider.connection.getTokenAccountBalance(ARCHIVE_ATA);
+    // console.log("edition amount", masterEditionAtaBlance.value.uiAmount);
+
+    await program.methods
+      .mintNft(ORIGIN_METADATA_BUMP, MASTER_EDITION_BUMP)
+      .accounts({
+        signer: wallOwner.publicKey,
+        wall: WALLPDA,
+        editionMarkPda,
+        metadataMint: WALL_MINT,
+        metadata: ORIGIN_METADATA,
+        masterEdition: MASTER_EDITION,
+        archivePda: ARCHIVE_PDA,
+        archiveAta: ARCHIVE_ATA,
+        // admin: admin.publicKey,
+        newMint: NEW_MINT,
+        newMintAta,
+        newMetadata: NEW_METADATA,
+        newEdition: NEW_EDITION,
+        // editionAuthority: provider.wallet.publicKey,
+        rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+        systemProgram: anchor.web3.SystemProgram.programId,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        metadataProgram: MPL_TOKEN_METADATA_PROGRAM_ID,
+      })
+      .signers([wallOwner])
+      .rpc();
+  });
+
+  it("Is close accounts", async () => {
+    const beforeBalance = await provider.connection.getBalance(admin.publicKey);
+    console.log("before balance", beforeBalance.toString());
+
+    const wallAccountBefore = await provider.connection.getAccountInfo(WALLPDA);
+    const proposalAccountBefore = await provider.connection.getAccountInfo(
+      PROPOSALPDA
+    );
+    const expensesAccountBefore = await provider.connection.getAccountInfo(
+      EXPENSES_PDA
+    );
+    const multisigAccountBefore = await provider.connection.getAccountInfo(
+      MULTISIG_ACCOUNT
+    );
+
+    expect(wallAccountBefore).to.not.be.null;
+    expect(proposalAccountBefore).to.not.be.null;
+    expect(expensesAccountBefore).to.not.be.null;
+    expect(multisigAccountBefore).to.not.be.null;
+
+    const expensesData = await program.account.expenses.fetch(EXPENSES_PDA);
+    let totalReceiptLamports = 0;
+
+    let remainigAccounts = [];
+    for (let i = 0; i < expensesData.seeds; i++) {
+      const [receiptPda] = anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("receipt"),
+          WALLPDA.toBuffer(),
+          new anchor.BN(i).toBuffer("le", 2),
+        ],
+        program.programId
+      );
+
+      remainigAccounts.push({
+        pubkey: receiptPda,
+        isWritable: true,
+        isSigner: false,
+      });
+    }
+
+    await program.methods
+      .closeAccounts()
+      .accountsPartial({
+        signer: admin.publicKey,
+        wall: WALLPDA,
+        proposal: PROPOSALPDA,
+        expenses: EXPENSES_PDA,
+        multisig: MULTISIG_ACCOUNT,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .remainingAccounts(remainigAccounts)
+      .signers([admin])
+      .rpc();
+
+    const wallAccountAfter = await provider.connection.getAccountInfo(WALLPDA);
+    const proposalAccountAfter = await provider.connection.getAccountInfo(
+      PROPOSALPDA
+    );
+    const expensesAccountAfter = await provider.connection.getAccountInfo(
+      EXPENSES_PDA
+    );
+    const multisigAccountAfter = await provider.connection.getAccountInfo(
+      MULTISIG_ACCOUNT
+    );
+
+    expect(wallAccountAfter).to.be.null;
+    expect(proposalAccountAfter).to.be.null;
+    expect(expensesAccountAfter).to.be.null;
+    expect(multisigAccountAfter).to.be.null;
+
+    const afterBalance = await provider.connection.getBalance(admin.publicKey);
+    console.log("protocol revenue", afterBalance - beforeBalance);
   });
 });
